@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>GPA Calculator</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background-color: #000;
+      color: white;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+
+    .container {
+      background-color: #1a1a1a;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 4px 10px rgba(255, 255, 255, 0.05);
+      width: 100%;
+      max-width: 420px;
+    }
+
+    h1 {
+      text-align: center;
+      font-size: 24px;
+      margin-bottom: 18px;
+    }
+
+    .subjects-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 8px 12px;
+    }
+
+    .subject-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .subject-row label {
+      flex: 1 1 auto;
+      font-weight: bold;
+      margin: 0;
+      font-size: 14px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    select, input[type="number"] {
+      flex: 0 0 120px;
+      padding: 8px;
+      border-radius: 5px;
+      border: none;
+      background-color: #333;
+      color: white;
+      font-size: 14px;
+    }
+
+    input[type="number"]#preCgpa {
+      width: 100%;
+      margin-top: 8px;
+    }
+
+    button {
+      width: 100%;
+      padding: 10px;
+      margin-top: 12px;
+      background-color: #007bff;
+      border: none;
+      border-radius: 6px;
+      color: white;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+
+    button:hover { background-color: #0056b3; }
+
+    p {
+      text-align: center;
+      font-size: 18px;
+      margin-top: 10px;
+      word-break: break-word;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 600px) {
+      .container { padding: 14px; max-width: 94%; }
+      h1 { font-size: 20px; margin-bottom: 12px; }
+      .subject-row { gap: 6px; }
+      select, input[type="number"] { flex: 0 0 100px; padding: 6px; font-size: 14px; }
+      button { padding: 9px; font-size: 15px; }
+      p { font-size: 16px; }
+    }
+
+    @media (max-width: 420px) {
+      .subjects-grid { grid-template-columns: 1fr; }
+      .subject-row { flex-direction: column; align-items: stretch; gap: 6px; }
+      .subject-row label { font-size: 13px; }
+      select, input[type="number"] { flex: 1 1 auto; width: 100%; }
+      button { padding: 8px; font-size: 14px; }
+      p { font-size: 15px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🎓 GPA Calculator</h1>
+
+    <div id="subjects" class="subjects-grid"></div>
+
+    <label for="preCgpa" style="margin-top:12px; display:block; font-weight:bold;">Previous CGPA:</label>
+    <input type="number" id="preCgpa" step="0.01" placeholder="Enter previous CGPA" />
+
+    <button id="calcBtn">Calculate GPA</button>
+
+    <p id="gpaResult"></p>
+    <p id="cgpaResult"></p>
+  </div>
+
+  <script>
+    const subjects = [
+      { name: "EBCC22l04", credits: 0 },
+      { name: "EBCC22l06", credits: 1 },
+      { name: "EBCS22004", credits: 3 },
+      { name: "EBCS22005", credits: 3 },
+      { name: "EBCS22L03", credits: 1 },
+      { name: "EBCS22L04", credits: 1 },
+      { name: "EBDS22ET4", credits: 3 },
+      { name: "EBDS22l01", credits: 1 },
+      { name: "EBEC22ID2", credits: 3 },
+      { name: "EBEC22IL2", credits: 1 },
+      { name: "EBMA22011", credits: 4 }
+    ];
+
+    const gradeOptions = [
+      { value: "10.0", label: "H" },
+      { value: "9.0", label: "S" },
+      { value: "8.0", label: "A" },
+      { value: "7.0", label: "B" },
+      { value: "6.0", label: "C" },
+      { value: "0.0", label: "F" }
+    ];
+
+    const subjectsContainer = document.getElementById("subjects");
+
+    subjects.forEach(subject => {
+      const row = document.createElement("div");
+      row.className = "subject-row";
+
+      const label = document.createElement("label");
+      label.textContent = `${subject.name} (${subject.credits} cr)`;
+
+      const select = document.createElement("select");
+      select.className = "subject-select";
+      select.dataset.credits = subject.credits;
+
+      gradeOptions.forEach(g => {
+        const option = document.createElement("option");
+        option.value = g.value;
+        option.textContent = g.label;
+        select.appendChild(option);
+      });
+
+      if (subject.credits === 0) {
+        select.disabled = true;
+        // set F as default for disabled to 0.0
+        select.value = "0.0";
+      }
+
+      row.appendChild(label);
+      row.appendChild(select);
+      subjectsContainer.appendChild(row);
+    });
+
+    function calculateGPA() {
+      let totalCredits = 0;
+      let weightedSum = 0;
+
+      document.querySelectorAll(".subject-select").forEach(select => {
+        const gradeValue = Number(select.value);
+        const credits = Number(select.dataset.credits);
+
+        if (credits > 0) {
+          weightedSum += gradeValue * credits;
+          totalCredits += credits;
+        }
+      });
+
+      const gpa = totalCredits === 0 ? 0 : (weightedSum / totalCredits).toFixed(2);
+      document.getElementById("gpaResult").textContent = "Your GPA is: " + gpa;
+
+      calculateAvgCGPA(gpa);
+    }
+
+    function calculateAvgCGPA(gpa) {
+      const preCgpa = parseFloat(document.getElementById("preCgpa").value) || 0;
+      const avgCgpa = ((preCgpa + parseFloat(gpa)) / 2).toFixed(2);
+      document.getElementById("cgpaResult").textContent = "Your Average CGPA is: " + avgCgpa;
+    }
+
+    document.getElementById("calcBtn").addEventListener("click", calculateGPA);
+  </script>
+</body>
+</html>
